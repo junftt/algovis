@@ -1,0 +1,218 @@
+<html>
+
+<head>
+  <title>Merge sort step by step</title>
+  <style>
+    #array,
+    #mergeBuffer {
+      min-height: 20px;
+    }
+
+    span {
+      display: inline-block;
+      min-width: 20px;
+      height: 20px;
+      border: 1px solid black;
+      text-align: center;
+    }
+
+    .range1 {
+      background: lightblue !important;
+    }
+
+    .range2 {
+      background: lightpink !important;
+    }
+
+    .mergeFrom,
+    .mergeTo {
+      border: 3px solid red;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Merge sort step by step</h2>
+  <button id="random">Generate random numbers</button> or type in numbers separated by commas
+  <input id="input" style="width:100%" type="text">
+  <button id="next">Next step</button> <em id="debug"> </em>
+  <div>
+    Array:
+    <div id="array">
+    </div>
+    Merge buffer:
+    <div id="mergeBuffer">
+    </div>
+  </div>
+  <script>
+    let input = [];
+    let iter = null;
+    let mergedTimes = 0;
+
+    function mergedColor(i) {
+      const LEVELS = 3;
+      const START = 100;
+      const END = 255;
+      return 'rgb(0,' + Math.floor(START + (i % LEVELS) * (END - START) / LEVELS) + ',0)';
+    }
+
+    function reset() {
+      input = [];
+      iter = null;
+      elementNext.innerText = 'Next step';
+      elementNext.removeAttribute('disabled');
+      elementDebug.innerText = '';
+    }
+
+    const START_MERGE = 1,
+      MERGE = 2,
+      END_MERGE = 3;
+    let elementArray = document.getElementById('array');
+    let elementMergeBuffer = document.getElementById('mergeBuffer');
+    let elementNext = document.getElementById('next');
+    let elementDebug = document.getElementById('debug');
+    document.getElementById('random').addEventListener('click', function () {
+      var a = new Array(10);
+      for (let i = 0; i < 10; i++) {
+        a[i] = Math.floor(Math.random() * 50);
+      }
+      document.getElementById('input').value = a.join(',');
+      reset();
+    });
+    document.getElementById('input').addEventListener('change', function () {
+      reset();
+    });
+    document.getElementById('next').addEventListener('click', function () {
+      if (iter == null) {
+        let s = document.getElementById('input').value.split(',');
+        let spans = '';
+        for (let i = 0; i < s.length; i++) {
+          spans += '<span>' + s[i] + '</span>';
+        }
+        elementArray.innerHTML = spans;
+        input = new Array(s.length);
+        for (let i = 0; i < s.length; i++) {
+          input[i] = parseFloat(s[i]);
+        }
+        iter = mergeSort(input, 0, input.length);
+        mergedTimes = 0;
+      } else {
+        var next = iter.next();
+        if (!next.done) {
+          switch (next.value.step) {
+            case START_MERGE: {
+              let size = next.value.range[1] - next.value.range[0] + next.value.range[3] - next.value.range[2];
+              let s = '';
+              for (let i = 0; i < size; i++) {
+                s += '<span></span>';
+              }
+              elementMergeBuffer.innerHTML = s;
+              let spans = elementArray.getElementsByTagName('span');
+              for (var i = 0; i < spans.length; i++) {
+                spans[i].classList.remove('range1', 'range2');
+                if (i >= next.value.range[0] && i < next.value.range[1]) {
+                  spans[i].classList.add('range1');
+                } else if (i >= next.value.range[2] && i < next.value.range[3]) {
+                  spans[i].classList.add('range2');
+                }
+              }
+              elementDebug.innerText = ('merging array[' + next.value.range[0] + ',' +
+                next.value.range[1] + ') and array[' + next.value.range[2] + ',' +
+                next.value.range[3] + ')');
+              break;
+            }
+            case MERGE: {
+              for (let i = 0, inputSpans = elementArray.getElementsByTagName('span'); i < inputSpans.length; i++) {
+                if (i == next.value.mergeFrom) {
+                  inputSpans[i].classList.add('mergeFrom');
+                } else {
+                  inputSpans[i].classList.remove('mergeFrom');
+                }
+              }
+              for (let i = 0, mergeBufferSpans = elementMergeBuffer.getElementsByTagName('span'); i <
+                mergeBufferSpans.length; i++) {
+                if (i == next.value.mergeTo) {
+                  mergeBufferSpans[i].innerText = input[next.value.mergeFrom];
+                  mergeBufferSpans[i].classList.add('mergeTo');
+                } else {
+                  mergeBufferSpans[i].classList.remove('mergeTo');
+                }
+              }
+              break;
+            }
+            case END_MERGE: {
+              let spans = elementArray.getElementsByTagName('span');
+              for (let i = next.value.range[0]; i < next.value.range[1]; i++) {
+                spans[i].innerText = input[i];
+                spans[i].style.background = mergedColor(mergedTimes);
+                spans[i].className = '';
+              }
+              for (let i = next.value.range[2]; i < next.value.range[3]; i++) {
+                spans[i].innerText = input[i];
+                spans[i].style.background = mergedColor(mergedTimes);
+                spans[i].className = '';
+              }
+              elementMergeBuffer.innerHTML = '';
+              mergedTimes++;
+              elementDebug.innerText = ('merged array[' + next.value.range[0] + ',' +
+                next.value.range[1] + ') and array[' + next.value.range[2] + ',' +
+                next.value.range[3] + ')');
+              break;
+            }
+          }
+        } else {
+          this.innerText = 'Done';
+          this.setAttribute('disabled', 'disabled');
+        }
+      }
+    });
+
+
+    function* merge(a, begin, mid, end) {
+      let b = new Array(end - begin);
+      let i = 0;
+      let p1 = begin,
+        p2 = mid;
+      yield {
+        step: START_MERGE,
+        range: [begin, mid, mid, end]
+      }
+      while (p1 < mid || p2 < end) {
+        if (p1 < mid && (p2 >= end || a[p1] <= a[p2])) {
+          b[i++] = a[p1++];
+          yield {
+            step: MERGE,
+            mergeTo: i - 1,
+            mergeFrom: p1 - 1
+          }
+        } else {
+          b[i++] = a[p2++];
+          yield {
+            step: MERGE,
+            mergeTo: i - 1,
+            mergeFrom: p2 - 1
+          }
+        }
+      }
+      for (i = 0; i < b.length; i++) {
+        a[begin + i] = b[i];
+      }
+      yield {
+        step: END_MERGE,
+        range: [begin, mid, mid, end]
+      }
+    }
+
+    function* mergeSort(a, begin, end) {
+      if (end - begin <= 1) {
+        return;
+      }
+      let mid = Math.floor((begin + end) / 2);
+      yield* mergeSort(a, begin, mid);
+      yield* mergeSort(a, mid, end);
+      yield* merge(a, begin, mid, end);
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,164 @@
+<html>
+
+<head>
+  <title>Binary search step by step</title>
+  <style>
+    span {
+      display: inline-block;
+      min-width: 20px;
+      height: 20px;
+      border: 1px solid black;
+      text-align: center;
+    }
+
+    .found {
+      background: green;
+    }
+
+    .compare {
+      background: lightpink !important;
+    }
+
+    .discard {
+      color: #eee;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Binary search step by step</h2>
+  <button id="random">Generate random numbers</button> or type in numbers separated by commas
+  <input id="input" style="width:100%" type="text">
+  <input id="target" type="text"><button id="next">Search</button> <em id="debug"> </em>
+  <div>
+    Array:
+    <div id="array">
+    </div>
+  </div>
+  <script>
+    let input = [];
+    let iter = null;
+
+    function reset() {
+      input = [];
+      iter = null;
+      elementNext.innerText = 'Search';
+      elementNext.removeAttribute('disabled');
+      elementDebug.innerText = '';
+    }
+
+    const COMPARE = 1,
+      DISCARD = 2;
+    let elementArray = document.getElementById('array');
+    let elementNext = document.getElementById('next');
+    let elementDebug = document.getElementById('debug');
+    document.getElementById('random').addEventListener('click', function () {
+      var a = new Array(10);
+      for (let i = 0; i < 10; i++) {
+        a[i] = Math.floor(Math.random() * 50);
+      }
+      document.getElementById('input').value = a.join(',');
+      document.getElementById('target').value = a[Math.floor(Math.random() * 10)];
+      reset();
+    });
+    document.getElementById('input').addEventListener('change', function () {
+      reset();
+    });
+    document.getElementById('target').addEventListener('change', function () {
+      reset();
+    });
+    document.getElementById('next').addEventListener('click', function () {
+      if (iter == null) {
+        let s = document.getElementById('input').value.split(',');
+        input = new Array(s.length);
+        for (let i = 0; i < s.length; i++) {
+          input[i] = parseFloat(s[i]);
+        }
+        // Sort before binary search.
+        input.sort(function (a, b) {
+          return a - b
+        });
+        let spans = '';
+        for (let i = 0; i < s.length; i++) {
+          spans += '<span>' + input[i] + '</span>';
+        }
+        elementArray.innerHTML = spans;
+
+        let target = parseFloat(document.getElementById('target').value);
+        iter = binarySearch(input, target);
+        mergedTimes = 0;
+        elementNext.innerText = 'Next step';
+      } else {
+        var next = iter.next();
+        if (!next.done) {
+          switch (next.value.step) {
+            case COMPARE: {
+              let lastCompare = elementArray.querySelector('.compare');
+              if (lastCompare) {
+                lastCompare.classList.remove('compare');
+              }
+              elementArray.getElementsByTagName('span')[next.value.index].classList.add('compare');
+              elementDebug.innerText = 'comparing the middle element in range[' + next.value.range[0] + ',' + next
+                .value.range[1] + '] with target';
+              break;
+            }
+            case DISCARD: {
+              let lastCompare = elementArray.querySelector('.compare');
+              if (lastCompare) {
+                lastCompare.classList.remove('compare');
+              }
+              let spans = elementArray.getElementsByTagName('span');
+              for (let i = next.value.range[0]; i <= next.value.range[1]; i++) {
+                spans[i].classList.add('discard');
+              }
+              elementDebug.innerText = 'discarded range[' + next.value.range[0] + ',' + next.value
+                .range[1] + ']';
+              break;
+            }
+          }
+        } else if (next.value != undefined) {
+          this.innerText = 'Done';
+          this.setAttribute('disabled', 'disabled');
+          if (next.value == -1) {
+            elementDebug.innerText = 'not found';
+          } else {
+            elementArray.getElementsByTagName('span')[next.value].className = 'found';
+            elementDebug.innerText = 'target found at index: ' + next.value;
+          }
+        }
+      }
+    });
+
+    function* binarySearch(a, target) {
+      // [left, right)
+      let left = 0,
+        right = a.length;
+      while (left < right) {
+        let mid = Math.floor((left + right) / 2);
+        yield {
+          step: COMPARE,
+          index: mid,
+          range: [left, right - 1]
+        };
+        if (a[mid] == target) {
+          return mid;
+        } else if (a[mid] < target) {
+          yield {
+            step: DISCARD,
+            range: [left, mid] // inclusive
+          };
+          left = mid + 1;
+        } else {
+          yield {
+            step: DISCARD,
+            range: [mid, right - 1] // inclusive
+          };
+          right = mid;
+        }
+      }
+      return -1;
+    }
+  </script>
+</body>
+
+</html>

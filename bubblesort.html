@@ -1,0 +1,193 @@
+<html>
+
+<head>
+  <title>Bubble sort step by step</title>
+  <style>
+    span {
+      display: inline-block;
+      min-width: 20px;
+      height: 20px;
+      border: 1px solid black;
+      text-align: center;
+    }
+
+    .number1 {
+      background: lightblue !important
+    }
+
+    .number2 {
+      background: lightpink !important
+    }
+
+    .swapped {
+      background: orange
+    }
+
+    .sorted {
+      background: green
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Bubble sort step by step</h2>
+  <button id="random">Generate random numbers</button> or type in numbers separated by commas
+  <input id="input" style="width:100%" type="text">
+  <button id="next">Next step</button> <em id="debug"> </em>
+  <div>
+    Array:
+    <div id="array">
+    </div>
+  </div>
+  <script>
+    let input = [];
+    let iter = null;
+    let mergedTimes = 0;
+
+    function mergedColor(i) {
+      const LEVELS = 3;
+      const START = 100;
+      const END = 255;
+      return 'rgb(0,' + Math.floor(START + (i % LEVELS) * (END - START) / LEVELS) + ',0)';
+    }
+
+    function reset() {
+      input = [];
+      iter = null;
+      elementNext.innerText = 'Next step';
+      elementNext.removeAttribute('disabled');
+      elementDebug.innerText = '';
+    }
+
+    const FINISH_ONE_ROUND = 1,
+      COMPARE = 2,
+      SWAP = 3;
+    let elementArray = document.getElementById('array');
+    let elementNext = document.getElementById('next');
+    let elementDebug = document.getElementById('debug');
+    document.getElementById('random').addEventListener('click', function () {
+      var a = new Array(10);
+      for (let i = 0; i < 10; i++) {
+        a[i] = Math.floor(Math.random() * 50);
+      }
+      document.getElementById('input').value = a.join(',');
+      reset();
+    });
+    document.getElementById('input').addEventListener('change', function () {
+      reset();
+    });
+    document.getElementById('next').addEventListener('click', function () {
+      if (iter == null) {
+        let s = document.getElementById('input').value.split(',');
+        let spans = '';
+        for (let i = 0; i < s.length; i++) {
+          spans += '<span>' + s[i] + '</span>';
+        }
+        elementArray.innerHTML = spans;
+        input = new Array(s.length);
+        for (let i = 0; i < s.length; i++) {
+          input[i] = parseFloat(s[i]);
+        }
+        iter = bubbleSort(input, 0, input.length);
+      } else {
+        var next = iter.next();
+        if (!next.done) {
+          switch (next.value.step) {
+            case FINISH_ONE_ROUND: {
+              let lastSorted = input.length - next.value.round;
+              if (next.value.swaps == 0) {
+                lastSorted = 0;
+              }
+              let spans = elementArray.getElementsByTagName('span');
+              for (let i = lastSorted; i < input.length; i++) {
+                spans[i].className = 'sorted';
+              }
+              let number1 = elementArray.querySelector('.number1');
+              if (number1) {
+                number1.classList.remove('number1');
+              }
+              let number2 = elementArray.querySelector('.number2');
+              if (number2) {
+                number2.classList.remove('number2');
+              }
+              for (let i = 0, spans = elementArray.getElementsByClassName('swapped'); i < spans.length; i++) {
+                spans[i].classList.remove('swapped');
+              }
+              elementDebug.innerText = ('finished round ' + next.value.round + ' with ' + next.value.swaps +
+                ' swaps');
+              break;
+            }
+            case COMPARE: {
+              let number1 = elementArray.querySelector('.number1');
+              if (number1) {
+                number1.classList.remove('number1');
+              }
+              let number2 = elementArray.querySelector('.number2');
+              if (number2) {
+                number2.classList.remove('number2');
+              }
+              for (let i = 0, spans = elementArray.getElementsByClassName('swapped'); i < spans.length; i++) {
+                spans[i].classList.remove('swapped');
+              }
+              let spans = elementArray.getElementsByTagName('span');
+              spans[next.value.i].classList.add('number1');
+              spans[next.value.i + 1].classList.add('number2');
+              elementDebug.innerText = ('comparing array[' + next.value.i + '] and array[' + (next.value.i + 1) +
+                ']');
+              break;
+            }
+            case SWAP: {
+              let spans = elementArray.getElementsByTagName('span');
+              spans[next.value.i].className = 'swapped';
+              spans[next.value.i + 1].className = 'swapped';
+              spans[next.value.i].innerText = input[next.value.i];
+              spans[next.value.i + 1].innerText = input[next.value.i + 1];
+              elementDebug.innerText = ('swapped array[' + next.value.i + '] and array[' + (next.value.i + 1) +
+              ']');
+              break;
+            }
+          }
+        } else {
+          this.innerText = 'Done';
+          this.setAttribute('disabled', 'disabled');
+        }
+      }
+    });
+
+    function swap(a, i, j) {
+      let t = a[i];
+      a[i] = a[j];
+      a[j] = t;
+    }
+
+    function* bubbleSort(a) {
+      for (let last = a.length - 1; last > 0; last--) {
+        let swaps = 0;
+        for (let i = 0; i < last; i++) {
+          yield {
+            step: COMPARE,
+            i: i
+          };
+          if (a[i] > a[i + 1]) {
+            swap(a, i, i + 1);
+            swaps++;
+            yield {
+              step: SWAP,
+              i: i
+            };
+          }
+        }
+        yield {
+          step: FINISH_ONE_ROUND,
+          round: a.length - last,
+          swaps: swaps
+        };
+        if (swaps == 0) {
+          break;
+        }
+      }
+    }
+  </script>
+</body>
+
+</html>
